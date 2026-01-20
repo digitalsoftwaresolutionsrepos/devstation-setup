@@ -15,13 +15,15 @@
     "DOTNET_EnableDiagnostics": "0"
   },
 
-  "initializeCommand": "bash -lc 'set -euo pipefail; mkdir -p .devcontainer; if [ ! -f .devcontainer/.env ]; then printf \"# GitHub CLI token\\nGH_TOKEN=\\n\\n# AI keys (optional)\\nOPENAI_API_KEY=\\nANTHROPIC_API_KEY=\\n\" > .devcontainer/.env; fi; chmod 600 .devcontainer/.env; grep -qxF \".devcontainer/.env\" .gitignore 2>/dev/null || echo \".devcontainer/.env\" >> .gitignore; [ -f .devcontainer/post-create-command.sh ] && chmod +x .devcontainer/post-create-command.sh || true'",
+  "initializeCommand": "bash -lc 'set -euo pipefail; mkdir -p .devcontainer \"$HOME/.claude\" \"$HOME/.codex\"; if [ ! -f .devcontainer/.env ]; then printf \"# GitHub CLI token\\nGH_TOKEN=\\n\\n# AI keys (optional)\\nOPENAI_API_KEY=\\nANTHROPIC_API_KEY=\\n\" > .devcontainer/.env; fi; chmod 600 .devcontainer/.env; grep -qxF \".devcontainer/.env\" .gitignore 2>/dev/null || echo \".devcontainer/.env\" >> .gitignore; [ -f .devcontainer/post-create-command.sh ] && chmod +x .devcontainer/post-create-command.sh || true'",
 
   "runArgs": [
     "--init",
     "--env-file", "${localWorkspaceFolder}/.devcontainer/.env",
     "--mount", "type=volume,source=${localWorkspaceFolderBasename}-npm-cache,target=/home/vscode/.npm",
     "--mount", "type=volume,source=${localWorkspaceFolderBasename}-nuget-packages,target=/home/vscode/.nuget/packages",
+    "--mount", "type=bind,source=${localEnv:HOME}/.claude,target=/home/vscode/.claude",
+    "--mount", "type=bind,source=${localEnv:HOME}/.codex,target=/home/vscode/.codex",
     "--add-host=host.docker.internal:host-gateway",
     "--tmpfs", "/tmp:exec,nosuid,nodev,size=512m",
     "--shm-size", "2g",
