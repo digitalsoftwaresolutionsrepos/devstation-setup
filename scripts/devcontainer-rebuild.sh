@@ -305,105 +305,65 @@ main() {
     done
     echo ""
 
-    # Create temp dir for results tracking
-    local result_dir
-    result_dir="$(mktemp -d)"
+    # Build repos sequentially, fail-fast on first error
+    local successful_repos=()
 
-    local pids=()
-    local repo_paths=()
-
-    # Start all builds in parallel - output streams directly to terminal with prefix
     for repo in "${repos[@]}"; do
       local name
       name="$(basename "$repo")"
-      repo_paths+=("$repo")
 
-      echo "[$name] Starting build..."
-      (
-        set -o pipefail
-        export SKIP_AI_CLIS="$SKIP_AI_CLIS"
-        export SKIP_PLAYWRIGHT="$SKIP_PLAYWRIGHT"
-        export BUILD_VERIFY_RESULT=""
-        # Run build and prefix all output with repo name
-        if build_single_repo "$repo" "$FORCE" "$PRUNE" "" 2>&1 | sed "s/^/[$name] /"; then
-          touch "$result_dir/$name.success"
-          echo "all tools verified" > "$result_dir/$name.verify"
-        else
-          touch "$result_dir/$name.failed"
-          # Try to capture verification failure reason from build output
-          echo "build or verification failed" > "$result_dir/$name.verify"
-        fi
-      ) &
-      pids+=($!)
-    done
+      echo ""
+      echo "========================================"
+      echo "Building: $name"
+      echo "========================================"
+      echo ""
 
-    # Wait for all builds
-    for i in "${!pids[@]}"; do
-      local pid="${pids[$i]}"
-      local repo="${repo_paths[$i]}"
-      local name
-      name="$(basename "$repo")"
-      wait "$pid" || true
-      if [[ -f "$result_dir/$name.success" ]]; then
+      export SKIP_AI_CLIS="$SKIP_AI_CLIS"
+      export SKIP_PLAYWRIGHT="$SKIP_PLAYWRIGHT"
+      export BUILD_VERIFY_RESULT=""
+
+      if build_single_repo "$repo" "$FORCE" "$PRUNE" "[$name] "; then
+        echo ""
         echo "[$name] *** Build completed successfully ***"
+        successful_repos+=("$repo")
       else
+        echo ""
         echo "[$name] *** Build FAILED ***"
+        echo ""
+        echo "=== Build Summary (STOPPED ON FAILURE) ==="
+        echo ""
+        for r in "${successful_repos[@]}"; do
+          echo "✓ $(basename "$r") - all tools verified"
+        done
+        echo "✗ $name - build or verification failed"
+        echo ""
+        echo "Remaining repos were NOT built due to failure."
+        exit 1
       fi
     done
-
-    local log_dir="$result_dir"  # For compatibility with cleanup
 
     echo ""
     echo "=== Build Summary ==="
     echo ""
 
-    local success_count=0
-    local fail_count=0
-
-    for repo in "${repo_paths[@]}"; do
-      local name
-      name="$(basename "$repo")"
-      local verify_info=""
-      if [[ -f "$log_dir/$name.verify" ]]; then
-        verify_info="$(cat "$log_dir/$name.verify")"
-      fi
-      if [[ -f "$log_dir/$name.success" ]]; then
-        ((success_count++)) || true
-        echo "✓ $name - $verify_info"
-      else
-        ((fail_count++)) || true
-        echo "✗ $name - $verify_info"
-      fi
+    for repo in "${successful_repos[@]}"; do
+      echo "✓ $(basename "$repo") - all tools verified"
     done
 
     echo ""
-    echo "Results: $success_count succeeded, $fail_count failed"
+    echo "Results: ${#successful_repos[@]} succeeded, 0 failed"
     echo ""
 
     # Show attach instructions for successful builds
-    if (( success_count > 0 )); then
-      echo "=== Attach Instructions ==="
+    echo "=== Attach Instructions ==="
+    echo ""
+    for repo in "${successful_repos[@]}"; do
+      local name
+      name="$(basename "$repo")"
+      echo "$name:"
+      echo "  /home/vscode/dexec $repo"
       echo ""
-      for repo in "${repo_paths[@]}"; do
-        local name
-        name="$(basename "$repo")"
-        if [[ -f "$log_dir/$name.success" ]]; then
-          echo "$name:"
-          echo "  /home/vscode/dexec $repo"
-          echo ""
-        fi
-      done
-    fi
-
-    # Note: Build output is shown in real-time above (prefixed with repo name)
-    # Failed builds are visible immediately - no need to replay logs
-
-    # Cleanup
-    rm -rf "$log_dir"
-
-    if (( fail_count > 0 )); then
-      exit 1
-    fi
+    done
   else
     # Single repo mode (original behavior)
     local repo_root
