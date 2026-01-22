@@ -44,4 +44,4 @@ fi
 
 ws_name="$(basename "$repo_path")"
 echo "Attaching to container $cid (${ws_name})..."
-exec docker exec -it -u vscode -w "/workspaces/${ws_name}" "$cid" "$cmd"
+exec docker exec -it -u vscode -w "/home/vscode/${ws_name}" "$cid" "$cmd"

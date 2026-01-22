@@ -59,6 +59,19 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
 
 ENV PATH="${NODE_HOME}/bin:${DOTNET_ROOT}:${PATH}:/home/${USERNAME}/.dotnet/tools"
 
+# Install gitui (terminal git UI)
+RUN ARCH=$(uname -m) && \
+    case "$ARCH" in \
+      x86_64) GITUI_FILE="gitui-linux-x86_64.tar.gz" ;; \
+      aarch64) GITUI_FILE="gitui-linux-aarch64.tar.gz" ;; \
+      *) echo "Unsupported arch: $ARCH"; exit 1 ;; \
+    esac && \
+    LATEST_URL=$(curl -sL https://api.github.com/repos/extrawurst/gitui/releases/latest \
+      | grep "browser_download_url.*${GITUI_FILE}" \
+      | cut -d '"' -f 4) && \
+    curl -sL "$LATEST_URL" | tar xz -C /usr/local/bin && \
+    chmod +x /usr/local/bin/gitui
+
 USER $USERNAME
 WORKDIR /app
 

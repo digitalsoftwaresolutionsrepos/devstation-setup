@@ -37,7 +37,7 @@ while [[ $# -gt 0 ]]; do
       echo "Flags:"
       echo "  --force          Remove containers/images/volumes and rebuild with no cache"
       echo "  --prune          Additionally prune dangling images after removal"
-      echo "  --skip-ai-clis   Skip installing AI CLIs (claude, gemini, codex)"
+      echo "  --skip-ai-clis   Skip installing AI CLIs (claude, codex)"
       echo "  --skip-playwright Skip installing Playwright browser"
       echo "  --fast           Skip both AI CLIs and Playwright (fastest rebuild)"
       exit 0
@@ -167,11 +167,11 @@ verify_container() {
     # Ensure common install locations are in PATH
     export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"
     MISSING=()
-    for cmd in dotnet node npm; do
+    for cmd in dotnet node npm gitui; do
       command -v "$cmd" >/dev/null 2>&1 || MISSING+=("$cmd")
     done
     if [[ "'"$skip_ai"'" != "1" ]]; then
-      for cmd in claude gemini codex; do
+      for cmd in claude codex; do
         command -v "$cmd" >/dev/null 2>&1 || MISSING+=("$cmd")
       done
     fi
