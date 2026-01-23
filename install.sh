@@ -309,13 +309,20 @@ select_repos() {
   done
 
   local done=0
+  local first_display=1
 
   # Simple selection interface
   while [[ $done -eq 0 ]]; do
-    # Clear and redraw
-    echo -e "\033[2J\033[H"  # Clear screen
+    # Add separator between iterations (but not before first display)
+    if [[ $first_display -eq 0 ]]; then
+      echo ""
+      echo "----------------------------------------"
+    fi
+    first_display=0
+
+    echo ""
     echo "Select repos to clone from $provider ($target):"
-    echo "(Use number to toggle, 'a' for all, 'n' for none, Enter to confirm)"
+    echo "(Enter number to toggle, 'a' for all, 'n' for none, Enter to confirm)"
     echo ""
 
     for ((i=0; i<${#repos[@]}; i++)); do
