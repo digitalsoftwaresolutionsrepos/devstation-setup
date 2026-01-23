@@ -236,13 +236,14 @@ clone_bitbucket_repos() {
   fi
 
   # Add credentials to ~/.netrc (git checks this file)
+  # For Bitbucket API tokens, use x-token-auth as username
   # Remove any existing bitbucket.org entry first
   if [[ -f ~/.netrc ]]; then
     grep -v "machine bitbucket.org" ~/.netrc > ~/.netrc.tmp || true
     mv ~/.netrc.tmp ~/.netrc
   fi
-  printf 'machine bitbucket.org\nlogin %s\npassword %s\n' \
-    "$BB_USERNAME" "$BB_APP_PASSWORD" >> ~/.netrc
+  printf 'machine bitbucket.org\nlogin x-token-auth\npassword %s\n' \
+    "$BB_APP_PASSWORD" >> ~/.netrc
   chmod 600 ~/.netrc
 
   for repo in "${repos[@]}"; do
