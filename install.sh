@@ -269,25 +269,25 @@ select_repos() {
   while [[ $done -eq 0 ]]; do
     # Add separator between iterations (but not before first display)
     if [[ $first_display -eq 0 ]]; then
-      echo ""
-      echo "----------------------------------------"
+      echo "" >&2
+      echo "----------------------------------------" >&2
     fi
     first_display=0
 
-    echo ""
-    echo "Select repos to clone from $provider ($target):"
-    echo "(Enter number to toggle, 'a' for all, 'n' for none, Enter to confirm)"
-    echo ""
+    echo "" >&2
+    echo "Select repos to clone from $provider ($target):" >&2
+    echo "(Enter number to toggle, 'a' for all, 'n' for none, Enter to confirm)" >&2
+    echo "" >&2
 
     for ((i=0; i<${#repos[@]}; i++)); do
       local marker="[ ]"
       if [[ ${checked[$i]} -eq 1 ]]; then
         marker="[x]"
       fi
-      echo "  $((i+1)). $marker ${repos[$i]}"
+      echo "  $((i+1)). $marker ${repos[$i]}" >&2
     done
 
-    echo ""
+    echo "" >&2
     read -rp "Selection (1-${#repos[@]}/a/n/Enter): " choice
 
     case "$choice" in
