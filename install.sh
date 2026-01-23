@@ -150,8 +150,56 @@ clone_github_repos() {
 BB_USERNAME=""
 BB_APP_PASSWORD=""
 BB_WORKSPACE=""
+BB_CONFIG_FILE="$HOME/.config/devstation/bitbucket"
+
+# Check for existing Bitbucket credentials
+load_bitbucket_credentials() {
+  # Check if config file exists with workspace and username
+  if [[ -f "$BB_CONFIG_FILE" ]]; then
+    source "$BB_CONFIG_FILE"
+  fi
+
+  # Check if .netrc has the token
+  if [[ -f ~/.netrc ]] && grep -q "machine bitbucket.org" ~/.netrc; then
+    BB_APP_PASSWORD=$(awk '/machine bitbucket.org/{found=1} found && /password/{print $2; exit}' ~/.netrc)
+  fi
+
+  # If we have all credentials, test them
+  if [[ -n "$BB_USERNAME" && -n "$BB_APP_PASSWORD" && -n "$BB_WORKSPACE" ]]; then
+    log_info "Found existing Bitbucket credentials, testing..."
+    local response
+    response=$(curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+      "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE?pagelen=1" 2>/dev/null)
+
+    if echo "$response" | jq -e '.values' &>/dev/null; then
+      log_success "Using saved Bitbucket credentials for $BB_WORKSPACE"
+      return 0
+    else
+      log_warn "Saved credentials invalid, will prompt for new ones"
+      BB_USERNAME=""
+      BB_APP_PASSWORD=""
+      BB_WORKSPACE=""
+    fi
+  fi
+  return 1
+}
+
+# Save Bitbucket credentials for future use
+save_bitbucket_credentials() {
+  mkdir -p "$(dirname "$BB_CONFIG_FILE")"
+  cat > "$BB_CONFIG_FILE" << EOF
+BB_USERNAME="$BB_USERNAME"
+BB_WORKSPACE="$BB_WORKSPACE"
+EOF
+  chmod 600 "$BB_CONFIG_FILE"
+}
 
 prompt_bitbucket_auth() {
+  # Try to use existing credentials first
+  if load_bitbucket_credentials; then
+    return 0
+  fi
+
   echo ""
   echo "Bitbucket authentication requires:"
   echo "  - Your Bitbucket username"
@@ -190,6 +238,7 @@ prompt_bitbucket_auth() {
 
   if echo "$response" | jq -e '.values' &>/dev/null; then
     log_success "Bitbucket authentication successful"
+    save_bitbucket_credentials
     return 0
   else
     log_error "Bitbucket authentication failed. Please check your credentials."
