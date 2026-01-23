@@ -269,7 +269,7 @@ Host: ~/code/my-repo/          Container: /workspaces/my-repo/
 Once you `dexec` into a container:
 - Working directory: `/workspaces/REPO_NAME`
 - User: `vscode` (has sudo)
-- Tools: git, gh, node/python/dotnet (per template), gitui, broot
+- Tools: git, gh, node/python/dotnet (per template), gitui
 - The container has its own CLAUDE.md (if the repo has one)
 - API keys: Set in `~/code/REPO/.devcontainer/.env` (git-ignored)
 

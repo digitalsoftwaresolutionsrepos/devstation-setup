@@ -167,7 +167,7 @@ verify_container() {
     # Ensure common install locations are in PATH
     export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"
     MISSING=()
-    for cmd in dotnet node npm gitui broot; do
+    for cmd in node npm gitui; do
       command -v "$cmd" >/dev/null 2>&1 || MISSING+=("$cmd")
     done
     if [[ "'"$skip_ai"'" != "1" ]]; then
