@@ -30,6 +30,11 @@ log_success() { echo -e "${GREEN}[OK]${NC} $1" >&2; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1" >&2; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 
+# URL-encode a string (for embedding credentials in URLs)
+urlencode() {
+  jq -sRr @uri <<< "$1"
+}
+
 # =============================================================================
 # Prerequisite Checks
 # =============================================================================
@@ -230,6 +235,11 @@ clone_bitbucket_repos() {
     return
   fi
 
+  # URL-encode credentials to handle special characters (dots, @, etc.)
+  local encoded_user encoded_token
+  encoded_user=$(urlencode "$BB_USERNAME")
+  encoded_token=$(urlencode "$BB_APP_PASSWORD")
+
   for repo in "${repos[@]}"; do
     local repo_path="$CODE_DIR/$repo"
     if [[ -d "$repo_path" ]]; then
@@ -238,7 +248,7 @@ clone_bitbucket_repos() {
       log_info "  Cloning $repo..."
       # Clone with embedded credentials (will be saved by git credential store)
       git clone --depth=1 \
-        "https://${BB_USERNAME}:${BB_APP_PASSWORD}@bitbucket.org/${BB_WORKSPACE}/${repo}.git" \
+        "https://${encoded_user}:${encoded_token}@bitbucket.org/${BB_WORKSPACE}/${repo}.git" \
         "$repo_path"
     fi
   done
