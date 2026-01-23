@@ -1,0 +1,12 @@
+# Force LF line endings for shell scripts
+*.sh text eol=lf
+config/* text eol=lf
+scripts/* text eol=lf
+
+# Markdown can be CRLF or LF
+*.md text
+
+# Keep binary files as-is
+*.png binary
+*.jpg binary
+*.gif binary
