@@ -76,7 +76,7 @@ Configure Bitbucket repos? (y/N): y
 
 If you choose yes:
 1. Enter your Bitbucket username
-2. Enter your app password (see [[Bitbucket Setup]])
+2. Enter your API token (see [[Bitbucket Setup]])
 3. Enter your workspace name
 4. Script discovers repos with `.devcontainer/` directories
 5. Use the interactive selector to choose repos to clone

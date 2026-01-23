@@ -119,20 +119,22 @@ If you choose `y`:
 ```
 Bitbucket authentication requires:
   - Your Bitbucket username
-  - An app password (create at: https://bitbucket.org/account/settings/app-passwords)
+  - An API token (create at: https://bitbucket.org/account/settings/api-tokens/)
   - Your workspace name
 
-App password permissions needed: Repositories (Read)
+API token scopes needed: Repositories (Read)
+
+NOTE: App passwords deprecated Sep 2025, disabled Jun 2026. Use API tokens.
 
 Bitbucket username: jsmith
-App password: ****
+API token: ****
 Workspace name: mycompany
 
 [INFO] Testing Bitbucket authentication...
 [OK] Bitbucket authentication successful
 ```
 
-See [[Bitbucket Setup]] for details on creating app passwords.
+See [[Bitbucket Setup]] for details on creating API tokens.
 
 #### Repository Discovery
 

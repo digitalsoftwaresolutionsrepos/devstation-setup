@@ -150,10 +150,12 @@ prompt_bitbucket_auth() {
   echo ""
   echo "Bitbucket authentication requires:"
   echo "  - Your Bitbucket username"
-  echo "  - An app password (create at: https://bitbucket.org/account/settings/app-passwords)"
+  echo "  - An API token (create at: https://bitbucket.org/account/settings/api-tokens/)"
   echo "  - Your workspace name"
   echo ""
-  echo "App password permissions needed: Repositories (Read)"
+  echo "API token scopes needed: Repositories (Read)"
+  echo ""
+  echo "NOTE: App passwords deprecated Sep 2025, disabled Jun 2026. Use API tokens."
   echo ""
 
   read -rp "Bitbucket username: " BB_USERNAME
@@ -162,10 +164,10 @@ prompt_bitbucket_auth() {
     return 1
   fi
 
-  read -rsp "App password: " BB_APP_PASSWORD
+  read -rsp "API token: " BB_APP_PASSWORD
   echo ""
   if [[ -z "$BB_APP_PASSWORD" ]]; then
-    log_warn "No app password provided, skipping Bitbucket setup"
+    log_warn "No API token provided, skipping Bitbucket setup"
     return 1
   fi
 

@@ -99,14 +99,16 @@ dc-stop-all
 
 ## Bitbucket Setup
 
-To clone from Bitbucket, you'll need an app password:
+To clone from Bitbucket, you'll need an API token:
 
-1. Go to https://bitbucket.org/account/settings/app-passwords/
-2. Create new app password with **Repositories: Read** permission
-3. Save the password securely
+> **Note:** App passwords deprecated Sep 2025, disabled Jun 2026. Use API tokens.
+
+1. Go to https://bitbucket.org/account/settings/api-tokens/
+2. Create new API token with **Repositories: Read** scope
+3. Save the token securely
 4. When prompted by `install.sh`, enter:
    - Your Bitbucket username
-   - The app password
+   - The API token
    - Your workspace name
 
 See the [wiki](../../wiki/Bitbucket-Setup) for detailed instructions.

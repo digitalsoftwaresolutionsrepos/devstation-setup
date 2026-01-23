@@ -140,9 +140,10 @@ gh auth refresh -h github.com -s read:org
 
 **Solutions:**
 1. Verify username (Bitbucket username, not email)
-2. Verify app password was copied correctly
+2. Verify API token was copied correctly
 3. Verify workspace name matches URL exactly
-4. Check app password has "Repositories: Read" permission
+4. Check API token has "Repositories: Read" scope
+5. **If using old app password:** Create an API token instead (app passwords deprecated Sep 2025)
 
 See [[Bitbucket Setup]] for detailed instructions.
 
@@ -160,8 +161,8 @@ fatal: unable to access '...': The requested URL returned error: 403
 gh auth logout
 gh auth login
 
-# For Bitbucket - check app password permissions
-# Ensure "Repositories: Read" is enabled
+# For Bitbucket - check API token scopes
+# Ensure "Repositories: Read" scope is enabled
 ```
 
 ## Devcontainer Issues

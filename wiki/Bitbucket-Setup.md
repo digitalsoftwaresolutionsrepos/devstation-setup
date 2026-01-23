@@ -2,40 +2,46 @@
 
 This guide explains how to configure Bitbucket access for the devstation install script.
 
+> **IMPORTANT: App Passwords Deprecated**
+>
+> As of September 9, 2025, Bitbucket app passwords can no longer be created.
+> Use **API tokens with scopes** instead. Existing app passwords will be
+> disabled on June 9, 2026. Migrate any integrations before then.
+
 ## Overview
 
 Unlike GitHub (which has its own CLI), Bitbucket access uses:
-- **App Passwords** for authentication
+- **API Tokens** for authentication (replaces app passwords)
 - **REST API** for repository discovery
 - **HTTPS with embedded credentials** for cloning
 
-## Creating an App Password
+## Creating an API Token
 
-### Step 1: Open App Password Settings
+### Step 1: Open API Token Settings
 
 1. Log in to [bitbucket.org](https://bitbucket.org)
 2. Click your avatar (bottom-left) → **Personal settings**
-3. Under **Access management**, click **App passwords**
-4. Or go directly to: https://bitbucket.org/account/settings/app-passwords/
+3. Under **Access management**, click **API tokens**
+4. Or go directly to: https://bitbucket.org/account/settings/api-tokens/
 
-### Step 2: Create New App Password
+### Step 2: Create New API Token
 
-1. Click **Create app password**
-2. Enter a label (e.g., "devstation-setup")
-3. Select permissions:
+1. Click **Create token**
+2. Enter a name (e.g., "devstation-setup")
+3. Select scopes:
 
-| Permission | Required | Purpose |
-|------------|----------|---------|
+| Scope | Required | Purpose |
+|-------|----------|---------|
 | **Repositories: Read** | Yes | List repos, check for .devcontainer |
 | Repositories: Write | No | Only needed if pushing changes |
 | Account: Read | No | Not needed |
 
 4. Click **Create**
-5. **Copy the password immediately** - it won't be shown again!
+5. **Copy the token immediately** - it won't be shown again!
 
 ### Step 3: Store Securely
 
-Save the app password somewhere secure (password manager, encrypted notes). You'll need it when running `install.sh`.
+Save the API token somewhere secure (password manager, encrypted notes). You'll need it when running `install.sh`.
 
 ## Finding Your Workspace Name
 
@@ -65,13 +71,15 @@ Configure Bitbucket repos? (y/N): y
 
 Bitbucket authentication requires:
   - Your Bitbucket username
-  - An app password (create at: https://bitbucket.org/account/settings/app-passwords)
+  - An API token (create at: https://bitbucket.org/account/settings/api-tokens/)
   - Your workspace name
 
-App password permissions needed: Repositories (Read)
+API token scopes needed: Repositories (Read)
+
+NOTE: App passwords deprecated Sep 2025, disabled Jun 2026. Use API tokens.
 
 Bitbucket username: jsmith
-App password: [paste your app password - hidden]
+API token: [paste your API token - hidden]
 Workspace name: mycompany
 
 [INFO] Testing Bitbucket authentication...
@@ -84,7 +92,7 @@ Workspace name: mycompany
 
 Credentials are embedded in the clone URL:
 ```bash
-git clone https://jsmith:APP_PASSWORD@bitbucket.org/mycompany/repo.git
+git clone https://jsmith:API_TOKEN@bitbucket.org/mycompany/repo.git
 ```
 
 ### After Install
@@ -96,7 +104,7 @@ git config --global credential.helper store
 
 After the first successful clone, credentials are saved to `~/.git-credentials`:
 ```
-https://jsmith:APP_PASSWORD@bitbucket.org
+https://jsmith:API_TOKEN@bitbucket.org
 ```
 
 Future git operations (pull, fetch) will use these stored credentials automatically.
@@ -144,9 +152,9 @@ Existing repos are skipped, and aliases are regenerated to include all repos.
 
 Verify:
 1. Username is correct (your Bitbucket username, not email)
-2. App password was copied correctly (no extra spaces)
+2. API token was copied correctly (no extra spaces)
 3. Workspace name is correct (case-sensitive)
-4. App password has "Repositories: Read" permission
+4. API token has "Repositories: Read" scope
 
 ### No Repos Found
 
@@ -190,17 +198,19 @@ git config --global credential.helper store
 ~/devstation-setup/install.sh
 ```
 
-## App Password vs SSH Keys
+## API Token vs SSH Keys
 
-| Feature | App Password | SSH Key |
-|---------|--------------|---------|
+| Feature | API Token | SSH Key |
+|---------|-----------|---------|
 | Setup complexity | Simple | More steps |
 | Storage | Plain text file | Encrypted key file |
-| Multiple accounts | One password per workspace | One key for all |
+| Multiple accounts | One token per workspace | One key for all |
 | Rotation | Easy to regenerate | Requires key replacement |
 | 2FA compatible | Yes | Yes |
+| Scoped permissions | Yes | No (full access) |
 
-App passwords are recommended for devstation because:
+API tokens are recommended for devstation because:
 - Simpler automated setup
 - Works well with git credential store
 - Easy to revoke/regenerate
+- Scoped permissions (read-only possible)
