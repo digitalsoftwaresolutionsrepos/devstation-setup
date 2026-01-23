@@ -272,6 +272,27 @@ Once you `dexec` into a container:
 - Tools: git, gh, node/python/dotnet (per template), gitui, broot
 - The container has its own CLAUDE.md (if the repo has one)
 - API keys: Set in `~/code/REPO/.devcontainer/.env` (git-ignored)
+
+## Troubleshooting
+
+### Docker-in-Docker fails on Debian trixie
+
+If a devcontainer build fails with:
+```
+The 'moby' option is not supported on Debian 'trixie' because 'moby-cli'
+and related system packages have been removed from that distribution.
+```
+
+**Fix:** In the repo's `.devcontainer/devcontainer.json`, set `"moby": false`:
+```json
+"features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+        "moby": false
+    }
+}
+```
+
+This switches from moby packages to official Docker packages.
 CLAUDE_EOF
 
   log_success "~/CLAUDE.md installed"
