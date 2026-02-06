@@ -11,7 +11,7 @@
     "LC_ALL": "C.UTF-8"
   },
 
-  "initializeCommand": "bash -lc 'set -euo pipefail; mkdir -p .devcontainer \"$HOME/.claude\" \"$HOME/.codex\"; if [ ! -f .devcontainer/.env ]; then printf \"# GitHub CLI token\\nGH_TOKEN=\\n\\n# AI keys (optional)\\nOPENAI_API_KEY=\\nANTHROPIC_API_KEY=\\n\" > .devcontainer/.env; fi; chmod 600 .devcontainer/.env; grep -qxF \".devcontainer/.env\" .gitignore 2>/dev/null || echo \".devcontainer/.env\" >> .gitignore; [ -f .devcontainer/post-create-command.sh ] && chmod +x .devcontainer/post-create-command.sh || true'",
+  "initializeCommand": "bash -lc 'set -euo pipefail; mkdir -p .devcontainer \"$HOME/.claude\" \"$HOME/.codex\"; if [ ! -f .devcontainer/.env ]; then printf \"# GitHub CLI token\\nGH_TOKEN=\\n\\n# AI keys (optional)\\nOPENAI_API_KEY=\\n\" > .devcontainer/.env; fi; chmod 600 .devcontainer/.env; grep -qxF \".devcontainer/.env\" .gitignore 2>/dev/null || echo \".devcontainer/.env\" >> .gitignore; [ -f .devcontainer/post-create-command.sh ] && chmod +x .devcontainer/post-create-command.sh || true'",
 
   "runArgs": [
     "--init",

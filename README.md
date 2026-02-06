@@ -175,6 +175,34 @@ cd /tmp/wiki && git add . && git commit -m "Update docs" && git push
 - [SOFTWARE.md](docs/SOFTWARE.md) - Detailed software list
 - [MOBAXTERM.md](docs/MOBAXTERM.md) - MobaXterm SSH configuration
 
+## Claude Code Authentication
+
+Claude Code credentials are shared across all containers by bind-mounting `~/.claude/` from the host. The base Docker image (`devstation-base:latest`) bakes `{"hasCompletedOnboarding": true}` into `~/.claude.json` so the onboarding wizard is skipped.
+
+### Setup
+
+1. Authenticate once on the host: `claude` (complete the login flow)
+2. All containers automatically pick up credentials via the bind mount
+3. Settings, plugins, statusline, and MCP servers are shared across all containers
+
+### How It Works
+
+Each devcontainer template includes this mount in `runArgs`:
+```json
+"--mount", "type=bind,source=${localEnv:HOME}/.claude,target=/home/vscode/.claude",
+```
+
+And the `initializeCommand` ensures the directory exists on the host:
+```bash
+mkdir -p "$HOME/.claude"
+```
+
+### Important
+
+- **Do NOT use named volumes** for `~/.claude/` — they diverge from the host and settings/statusline won't sync
+- **Do NOT set `ANTHROPIC_API_KEY`** in `.env` (even empty) — it triggers API billing mode instead of using your Max/Pro subscription
+- **Do NOT set `CLAUDE_CODE_OAUTH_TOKEN`** — same problem, triggers API billing mode
+
 ## Devcontainer Templates
 
 The `templates/` directory contains starter devcontainer configurations:
