@@ -28,8 +28,11 @@ DO NOT edit code in ~/code/* directly from the host - always enter the devcontai
 │   └── ...
 ├── devcontainer-rebuild.sh # Symlink -> devstation-setup/scripts/
 ├── devcontainer-open.sh    # Symlink
+├── devcontainer-stop.sh    # Symlink - stop single container
+├── devcontainer-start-all.sh # Symlink - start/rebuild all repos
 ├── devcontainer-stop-all.sh
 ├── devcontainer-cleanup.sh
+├── build-base-image.sh     # Symlink - build devstation-base:latest
 └── dexec                   # Symlink - exec into containers
 ```
 
@@ -38,8 +41,13 @@ DO NOT edit code in ~/code/* directly from the host - always enter the devcontai
 | Command | Purpose |
 |---------|---------|
 | `~/devcontainer-rebuild.sh ~/code/REPO` | Build and start container |
-| `~/devcontainer-rebuild.sh ~/code` | Rebuild ALL repos in ~/code |
+| `~/devcontainer-rebuild.sh ~/code` | Rebuild ALL repos in ~/code (parallel) |
+| `~/devcontainer-rebuild.sh ~/code/REPO --force` | Full rebuild (remove containers/images/volumes first) |
+| `~/devcontainer-rebuild.sh ~/code/REPO --fast` | Skip AI CLIs and Playwright install |
 | `~/devcontainer-open.sh ~/code/REPO` | Start stopped container |
+| `~/devcontainer-stop.sh ~/code/REPO` | Stop a single container |
+| `~/devcontainer-start-all.sh` | Start all 5 repo containers |
+| `~/devcontainer-start-all.sh --rebuild` | Rebuild all 5 repo containers |
 | `~/devcontainer-stop-all.sh` | Stop all devcontainers |
 | `~/devcontainer-cleanup.sh` | Remove stopped containers, prune images |
 | `dexec ~/code/REPO` | Shell into running container |
@@ -101,15 +109,200 @@ Host ~/.claude/ ←bind-mount→ Container ~/.claude/
 2. All containers automatically pick up credentials via the bind mount
 3. No env vars needed (`ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` trigger API billing mode)
 
-### devcontainer.json mount (in every repo):
+### Bind Mounts (in every repo's devcontainer.json runArgs):
 ```json
 "--mount", "type=bind,source=${localEnv:HOME}/.claude,target=/home/vscode/.claude",
+"--mount", "type=bind,source=${localEnv:HOME}/.codex,target=/home/vscode/.codex",
+"--mount", "type=bind,source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh",
+"--mount", "type=bind,source=${localEnv:HOME}/bin,target=/home/vscode/bin",
 ```
 
 ### initializeCommand must include:
 ```bash
-mkdir -p "$HOME/.claude"
+mkdir -p "$HOME/.claude" "$HOME/.codex" "$HOME/.config/gh" "$HOME/bin"
 ```
+
+## Post-Create Philosophy: Instant Rebuilds
+
+Container rebuilds MUST be fast (seconds, not minutes). The post-create scripts should ONLY handle container-level setup — never project-level work.
+
+### What Post-Create Scripts Should Do
+- System tuning (inotify limits, /tmp permissions, XDG_RUNTIME_DIR)
+- Start PostgreSQL (init cluster if needed, create roles/databases)
+- Fix top-level ownership of cache directories (NuGet, npm, dotnet) — **never recursive chown**
+- Ensure PATH includes ~/.local/bin and ~/.npm-global/bin
+- Start AgentWatch daemon (if installed)
+- Install AI CLIs only if not already present (`command -v` guard)
+
+### What Post-Create Scripts Must NOT Do
+- `dotnet restore` — workspace is bind-mounted, obj/bin persist across rebuilds
+- `npm install` / `npm ci` — node_modules persist on host via bind mount
+- `pip install` — venv persists on host
+- `cargo install` — cargo binaries persist on host
+- `dotnet ef database update` — servers auto-apply migrations on startup
+- `dotnet tool install` — tools persist in ~/.dotnet/tools via bind mount
+- Recursive `chown -R` on cache directories — these have tens of thousands of files
+
+### Why This Works
+All workspaces are **bind-mounted** from the host (`~/code/REPO` → `/workspaces/REPO`). This means:
+- `node_modules/`, `bin/`, `obj/`, `.nuget/packages/` all persist across rebuilds
+- Project dependencies only need to be installed once (the first time, manually)
+- Rebuilding a container just creates a fresh OS environment around the existing workspace
+
+### Base Image (`devstation-base:latest`)
+All 5 repos use `FROM devstation-base:latest`. The base image contains ALL tools:
+- .NET 9, 8, and 6 SDKs
+- Node.js 22 + npm
+- Python 3.12
+- Bun runtime
+- Go 1.23.5
+- Rust (rustup + cargo)
+- AI CLIs: claude, gemini, codex, codexaw
+- Playwright Chromium (shared, not per-repo)
+- Stripe CLI, AWS CLI, doctl
+- gitui, broot, Docker CLI
+
+Build the base image: `~/build-base-image.sh` (supports `--no-cache`)
+
+### Performance Notes
+- Top-level `chown` with `stat` check: `if [ "$(stat -c '%u:%g' "$p")" != "$(id -u):$(id -g)" ]; then chown ...`
+- AI CLI installs use `command -v` guards to skip if already installed
+- `--fast` flag on devcontainer-rebuild.sh sets `SKIP_AI_CLIS=1` and `SKIP_PLAYWRIGHT=1`
+- Parallel rebuilds can race on `/tmp/devcontainercli-vscode/` — rebuild individually if ENOENT errors occur
+
+## Reference Patterns for New Repos
+
+When setting up a new repo's devcontainer, follow these exact patterns.
+
+### Dockerfile (one line)
+```dockerfile
+FROM devstation-base:latest
+```
+The base image has everything. Repo Dockerfiles should only add repo-specific system packages if absolutely needed.
+
+### devcontainer.json — Required Sections
+
+**initializeCommand** (runs on HOST before container starts):
+```json
+"initializeCommand": "bash -lc 'set -euo pipefail; mkdir -p .devcontainer \"$HOME/.claude\" \"$HOME/.codex\" \"$HOME/.config/gh\" \"$HOME/bin\"; if [ ! -f .devcontainer/.env ]; then printf \"# GitHub CLI token\\nGH_TOKEN=\\n\" > .devcontainer/.env; fi; chmod 600 .devcontainer/.env; grep -qxF \".devcontainer/.env\" .gitignore || echo \".devcontainer/.env\" >> .gitignore; [ -f .devcontainer/post-create-command.sh ] && chmod +x .devcontainer/post-create-command.sh || true'"
+```
+
+**runArgs** — must include these bind mounts:
+```json
+"runArgs": [
+  "--mount", "type=bind,source=${localEnv:HOME}/.claude,target=/home/vscode/.claude",
+  "--mount", "type=bind,source=${localEnv:HOME}/.codex,target=/home/vscode/.codex",
+  "--mount", "type=bind,source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh",
+  "--mount", "type=bind,source=${localEnv:HOME}/bin,target=/home/vscode/bin"
+]
+```
+
+**postCreateCommand / postStartCommand**:
+```json
+"postCreateCommand": "bash ./.devcontainer/post-create-command.sh",
+"postStartCommand": "bash ./.devcontainer/post-create-command.sh --quick"
+```
+
+### post-create-command.sh — Required Patterns
+
+**Ownership fix (NEVER use `chown -R`):**
+```bash
+local myuid="$(id -u):$(id -g)"
+for p in /home/vscode/.nuget /home/vscode/.npm /home/vscode/.npm-global; do
+  if [ -d "$p" ] && [ "$(stat -c '%u:%g' "$p" 2>/dev/null)" != "$myuid" ]; then
+    $SUDO_BIN chown "$myuid" "$p" 2>/dev/null || true
+  fi
+done
+```
+
+**AI CLI install (ALWAYS guard with `command -v`):**
+```bash
+if ! command -v claude >/dev/null 2>&1; then
+  timeout 120 npm install -g @anthropic-ai/claude-code 2>&1 || log "Warning: Claude CLI install failed."
+fi
+if ! command -v codexaw >/dev/null 2>&1; then
+  if timeout 120 npm install -g https://github.com/digitalsoftwaresolutionsrepos/codex/releases/latest/download/codexaw.tgz; then
+    [ -x "$bin_dir/codex" ] && mv "$bin_dir/codex" "$bin_dir/codexaw" 2>/dev/null || true
+  fi
+fi
+if ! command -v codex >/dev/null 2>&1; then
+  timeout 120 npm install -g @openai/codex || true
+fi
+```
+
+**AgentWatch daemon startup:**
+```bash
+start_agentwatch() {
+  local aw_supervisor="/home/vscode/.agentwatch/bin/agentwatch-supervisor"
+  local aw_daemon="/home/vscode/.agentwatch/bin/agentwatch-daemon"
+  local aw_config="/home/vscode/.agentwatch/worker-config.json"
+  if [ -x "$aw_supervisor" ] && [ -f "$aw_config" ]; then
+    if ! pgrep -f "agentwatch-supervisor" > /dev/null 2>&1; then
+      nohup "$aw_supervisor" --config "$aw_config" > /dev/null 2>&1 &
+    fi
+  elif [ -x "$aw_daemon" ] && [ -f "$aw_config" ]; then
+    if ! pgrep -f "agentwatch-daemon" > /dev/null 2>&1; then
+      nohup "$aw_daemon" --config "$aw_config" > /dev/null 2>&1 &
+    fi
+  fi
+}
+```
+
+**Main function with --stop/--quick flags:**
+```bash
+main() {
+  case "${1:-}" in
+    --stop) exit 0 ;;
+    --quick)
+      # Minimal: just start services + AI CLIs
+      setup_postgres  # if applicable
+      install_ai_clis
+      start_agentwatch
+      exit 0
+      ;;
+  esac
+  # Full setup
+  raise_inotify_limits
+  prepare_runtime_dirs
+  fix_cache_ownership
+  bootstrap_gh_cli
+  setup_postgres  # if applicable
+  install_ai_clis
+  start_agentwatch
+}
+main "$@"
+```
+
+### Anti-Patterns (NEVER do these in post-create)
+```bash
+# WRONG: Recursive chown walks tens of thousands of files
+sudo chown -R "$(id -u):$(id -g)" "$HOME/.npm"
+
+# WRONG: Project restore — workspace persists via bind mount
+dotnet restore
+npm install
+npm ci
+pip install -r requirements.txt
+cargo install just
+
+# WRONG: Database migrations — server auto-applies on startup
+dotnet ef database update
+
+# WRONG: Installing AI CLIs without checking if present
+npm install -g @anthropic-ai/claude-code  # Reinstalls every rebuild!
+```
+
+### Host-Shared Scripts (`~/bin/`)
+
+Custom scripts in `~/bin/` on the host are available in all containers via bind mount. The base image has `~/bin` first in PATH. Example:
+
+```bash
+# On host: create ~/bin/claudes
+#!/usr/bin/env bash
+exec claude --dangerously-skip-permissions "$@"
+```
+
+This is immediately available as `claudes` in every container.
 
 ## Inside Containers
 
@@ -121,6 +314,33 @@ Once you `dexec` into a container:
 - API keys: Set in `~/code/REPO/.devcontainer/.env` (git-ignored)
 
 ## Troubleshooting
+
+### `dexec` OCI runtime exec error: chdir to cwd failed
+
+If `dexec` fails with:
+```
+OCI runtime exec failed: exec failed: unable to start container process: chdir to cwd ("/workspaces/REPONAME") set in config.json failed: no such file or directory
+```
+
+**Root cause:** `~/.bashrc` defines a `dexec()` shell function (~line 126) that **shadows** all dexec script files (`~/dexec`, `~/.local/bin/dexec`). Shell functions always take priority over PATH lookups. The function may be hardcoding `-w "/workspaces/${ws_name}"` instead of reading `workspaceFolder` from `devcontainer.json`.
+
+**Diagnosis:** Run `type dexec` — if it says "dexec is a function", the `.bashrc` function is what runs, NOT any script file.
+
+**Fix:** The `dexec()` function in `~/.bashrc` must read `workspaceFolder` from the repo's `devcontainer.json`:
+```bash
+# Inside the dexec() function, BEFORE the docker exec call:
+local ws_folder=""
+local devcontainer_json="$repo_path/.devcontainer/devcontainer.json"
+if [ -f "$devcontainer_json" ]; then
+  ws_folder="$(grep -o '"workspaceFolder"[[:space:]]*:[[:space:]]*"[^"]*"' "$devcontainer_json" 2>/dev/null | sed 's/.*: *"\([^"]*\)".*/\1/' || true)"
+fi
+if [ -z "$ws_folder" ]; then
+  ws_folder="/workspaces/${ws_name}"
+fi
+docker exec -it -u vscode -w "$ws_folder" "$cid" "$cmd"
+```
+
+**IMPORTANT:** Editing the script files at `~/devstation-setup/scripts/dexec` or `~/.local/bin/dexec` will have NO effect — the `.bashrc` function is the one that must be fixed. After editing `.bashrc`, run `source ~/.bashrc` in all open terminals.
 
 ### Docker-in-Docker fails on Debian trixie
 

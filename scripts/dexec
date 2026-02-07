@@ -58,4 +58,4 @@ if [ -z "$ws_folder" ]; then
 fi
 
 echo "Attaching to container $cid (${ws_name})..."
-exec docker exec -it -u vscode "$cid" bash -c "cd '$ws_folder' && exec $cmd"
+exec docker exec -it -w "$ws_folder" -u vscode "$cid" bash -c "exec $cmd"

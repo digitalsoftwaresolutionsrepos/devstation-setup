@@ -59,8 +59,19 @@ dexec() {
   fi
 
   local ws_name="$(basename "$repo_path")"
+
+  # Read workspaceFolder from devcontainer.json, fall back to /workspaces/<name>
+  local ws_folder=""
+  local devcontainer_json="$repo_path/.devcontainer/devcontainer.json"
+  if [ -f "$devcontainer_json" ]; then
+    ws_folder="$(grep -o '"workspaceFolder"[[:space:]]*:[[:space:]]*"[^"]*"' "$devcontainer_json" 2>/dev/null | sed 's/.*: *"\([^"]*\)".*/\1/' || true)"
+  fi
+  if [ -z "$ws_folder" ]; then
+    ws_folder="/workspaces/${ws_name}"
+  fi
+
   echo "Attaching to container $cid (${ws_name})..."
-  docker exec -it -u vscode -w "/workspaces/${ws_name}" "$cid" "$cmd"
+  docker exec -it -u vscode -w "$ws_folder" "$cid" "$cmd"
 }
 
 # =============================================================================
