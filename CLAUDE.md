@@ -78,11 +78,13 @@ Host: ~/code/my-repo/          Container: /workspaces/my-repo/
 
 ## Template Options
 
-| Template | Base | Features |
-|----------|------|----------|
-| `templates/node/` | node:20-bookworm | npm cache volume, port 3000 |
-| `templates/python/` | python:3.12-bookworm | pip cache volume, port 8000 |
-| `templates/dotnet/` | dotnet/sdk:9.0 | PostgreSQL, npm+nuget caches, ports 5000,5432 |
+All templates use `FROM devstation-base:latest`. NEVER add a custom base image — the base image already has everything. Template Dockerfiles should be one line only; add repo-specific system packages only if absolutely needed.
+
+| Template | Features |
+|----------|----------|
+| `templates/node/` | npm cache volume, port 3000 |
+| `templates/python/` | pip cache volume, port 8000 |
+| `templates/dotnet/` | PostgreSQL, npm+nuget caches, ports 5000,5432 |
 
 ## Common Host Tasks
 

@@ -11,13 +11,10 @@ if [[ "${1:-}" == "--rebuild" ]]; then
 fi
 
 CODE_DIR="${HOME}/code"
-REPOS=(
-  "AIGeneratedAgentWatch"
-  "AIGeneratedRepositoryCloner"
-  "AIGeneratedGradewave"
-  "AIGeneratedDeploymentInfrastructure"
-  "codex"
-)
+REPOS=()
+for d in "$CODE_DIR"/*/; do
+  [ -d "$d/.devcontainer" ] && REPOS+=("$(basename "$d")")
+done
 
 echo "Starting devcontainers for repos in $CODE_DIR"
 echo "Mode: $([ "$REBUILD" == "1" ] && echo "rebuild" || echo "open existing")"
