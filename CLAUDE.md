@@ -189,15 +189,27 @@ The base image has everything. Repo Dockerfiles should only add repo-specific sy
 "initializeCommand": "bash -lc 'set -euo pipefail; mkdir -p .devcontainer \"$HOME/.claude\" \"$HOME/.codex\" \"$HOME/.config/gh\" \"$HOME/bin\"; if [ ! -f .devcontainer/.env ]; then printf \"# GitHub CLI token\\nGH_TOKEN=\\n\" > .devcontainer/.env; fi; chmod 600 .devcontainer/.env; grep -qxF \".devcontainer/.env\" .gitignore || echo \".devcontainer/.env\" >> .gitignore; [ -f .devcontainer/post-create-command.sh ] && chmod +x .devcontainer/post-create-command.sh || true'"
 ```
 
-**runArgs** — must include these bind mounts:
+**overrideCommand** (let systemd run as PID 1):
+```json
+"overrideCommand": false
+```
+
+**runArgs** — systemd flags + bind mounts:
 ```json
 "runArgs": [
+  "--privileged",
+  "--cgroupns=host",
+  "--tmpfs", "/run:exec,nosuid,nodev",
+  "--tmpfs", "/run/lock:exec,nosuid,nodev",
+  "-v", "/sys/fs/cgroup:/sys/fs/cgroup:rw",
   "--mount", "type=bind,source=${localEnv:HOME}/.claude,target=/home/vscode/.claude",
   "--mount", "type=bind,source=${localEnv:HOME}/.codex,target=/home/vscode/.codex",
   "--mount", "type=bind,source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh",
   "--mount", "type=bind,source=${localEnv:HOME}/bin,target=/home/vscode/bin"
 ]
 ```
+
+> **Note:** `--init` must NOT be used — tini would steal PID 1 from systemd. The base image's `CMD ["/sbin/init"]` + `STOPSIGNAL SIGRTMIN+3` handle init. `--privileged` and `--cgroupns=host` are required for systemd to manage cgroups. The `/run` and `/run/lock` tmpfs mounts give systemd writable runtime dirs. journald is configured for volatile storage (64MB max) via `/etc/systemd/journald.conf.d/container.conf` in the base image.
 
 **postCreateCommand / postStartCommand**:
 ```json
@@ -251,13 +263,31 @@ start_agentwatch() {
 }
 ```
 
+**wait_for_systemd (call first in both full and --quick paths):**
+```bash
+wait_for_systemd() {
+  if [ -d /run/systemd/system ]; then
+    log "Waiting for systemd to finish booting..."
+    for i in $(seq 1 30); do
+      if systemctl is-system-running --wait 2>/dev/null | grep -qE "running|degraded"; then
+        log "systemd is ready."
+        return 0
+      fi
+      sleep 1
+    done
+    log "Warning: systemd did not reach running state within 30s (continuing anyway)."
+  fi
+}
+```
+
 **Main function with --stop/--quick flags:**
 ```bash
 main() {
   case "${1:-}" in
     --stop) exit 0 ;;
     --quick)
-      # Minimal: just start services + AI CLIs
+      # Minimal: wait for systemd, start services + AI CLIs
+      wait_for_systemd
       setup_postgres  # if applicable
       install_ai_clis
       start_agentwatch
@@ -265,6 +295,7 @@ main() {
       ;;
   esac
   # Full setup
+  wait_for_systemd
   raise_inotify_limits
   prepare_runtime_dirs
   fix_cache_ownership

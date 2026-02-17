@@ -17,8 +17,11 @@
 
   "initializeCommand": "bash -lc 'set -euo pipefail; mkdir -p .devcontainer \"$HOME/.claude\" \"$HOME/.codex\" \"$HOME/.config/gh\" \"$HOME/bin\"; if [ ! -f .devcontainer/.env ]; then printf \"# GitHub CLI token\\nGH_TOKEN=\\n\\n# AI keys (optional)\\nOPENAI_API_KEY=\\n\" > .devcontainer/.env; fi; chmod 600 .devcontainer/.env; grep -qxF \".devcontainer/.env\" .gitignore 2>/dev/null || echo \".devcontainer/.env\" >> .gitignore; [ -f .devcontainer/post-create-command.sh ] && chmod +x .devcontainer/post-create-command.sh || true'",
 
+  "overrideCommand": false,
+
   "runArgs": [
-    "--init",
+    "--privileged",
+    "--cgroupns=host",
     "--env-file", "${localWorkspaceFolder}/.devcontainer/.env",
     "--mount", "type=volume,source=${localWorkspaceFolderBasename}-npm-cache,target=/home/vscode/.npm",
     "--mount", "type=volume,source=${localWorkspaceFolderBasename}-nuget-packages,target=/home/vscode/.nuget/packages",
@@ -28,6 +31,9 @@
     "--mount", "type=bind,source=${localEnv:HOME}/bin,target=/home/vscode/bin",
     "--add-host=host.docker.internal:host-gateway",
     "--tmpfs", "/tmp:exec,nosuid,nodev,size=512m",
+    "--tmpfs", "/run:exec,nosuid,nodev",
+    "--tmpfs", "/run/lock:exec,nosuid,nodev",
+    "-v", "/sys/fs/cgroup:/sys/fs/cgroup:rw",
     "--shm-size", "2g",
     "--cpus=1.5",
     "--memory=4g",

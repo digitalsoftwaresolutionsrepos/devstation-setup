@@ -21,7 +21,7 @@ RUN _start=$SECONDS && echo "▶ [1/21] Installing system packages…" && \
     software-properties-common procps locales iproute2 \
     python3 python3-pip python3-venv \
     postgresql postgresql-contrib postgresql-client \
-    openssh-client git git-lfs unzip jq gettext gettext-base \
+    openssh-client git git-lfs unzip zip jq gettext gettext-base \
     pkg-config libssl-dev zstd && \
     git lfs install --system && \
     sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
@@ -236,6 +236,28 @@ RUN _start=$SECONDS && echo "▶ [18/21] Creating user ${USERNAME} (UID ${USER_U
     echo "✓ [18/21] done in $((SECONDS - _start))s"
 
 # ---------------------------------------------------------------------------
+# [18.5] systemd: configure for container use
+# ---------------------------------------------------------------------------
+RUN systemctl mask -- \
+      systemd-resolved.service \
+      systemd-networkd.service \
+      systemd-networkd-wait-online.service \
+      systemd-timesyncd.service \
+      systemd-logind.service \
+      systemd-remount-fs.service \
+      systemd-tmpfiles-setup.service \
+      getty.target \
+      console-getty.service \
+      sys-kernel-config.mount \
+      sys-kernel-debug.mount \
+      sys-kernel-tracing.mount \
+      dev-hugepages.mount \
+      dev-mqueue.mount && \
+    mkdir -p /etc/systemd/journald.conf.d && \
+    printf '[Journal]\nStorage=volatile\nRuntimeMaxUse=64M\nForwardToConsole=no\n' \
+      > /etc/systemd/journald.conf.d/container.conf
+
+# ---------------------------------------------------------------------------
 # [19] ENV: PATH, NPM_CONFIG_CACHE/PREFIX, DOTNET_ROOT, LANG, etc.
 # ---------------------------------------------------------------------------
 ENV NPM_CONFIG_CACHE=/home/${USERNAME}/.npm
@@ -302,4 +324,5 @@ RUN _start=$SECONDS && echo "▶ [24/24] Installing Playwright Chromium…" && \
 # ---------------------------------------------------------------------------
 WORKDIR /app
 SHELL ["/bin/bash", "-lc"]
-CMD ["/bin/bash"]
+STOPSIGNAL SIGRTMIN+3
+CMD ["/sbin/init"]

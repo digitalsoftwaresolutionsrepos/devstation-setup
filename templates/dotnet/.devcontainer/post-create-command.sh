@@ -119,6 +119,21 @@ install_ai_clis() {
   fi
 }
 
+# --- Wait for systemd (if running as PID 1) ---
+wait_for_systemd() {
+  if [ -d /run/systemd/system ]; then
+    log "Waiting for systemd to finish booting..."
+    for i in $(seq 1 30); do
+      if systemctl is-system-running --wait 2>/dev/null | grep -qE "running|degraded"; then
+        log "systemd is ready."
+        return 0
+      fi
+      sleep 1
+    done
+    log "Warning: systemd did not reach running state within 30s (continuing anyway)."
+  fi
+}
+
 # --- AgentWatch daemon ---
 start_agentwatch() {
   log "Starting AgentWatch daemon (if installed)..."
@@ -153,6 +168,7 @@ main() {
   case "${1:-}" in
     --stop) exit 0 ;;
     --quick)
+      wait_for_systemd
       setup_postgres
       install_ai_clis
       start_agentwatch
@@ -161,6 +177,7 @@ main() {
       ;;
   esac
 
+  wait_for_systemd
   raise_inotify_limits
   prepare_runtime_dirs
   fix_cache_ownership
