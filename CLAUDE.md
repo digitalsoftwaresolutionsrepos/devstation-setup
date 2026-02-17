@@ -209,7 +209,29 @@ The base image has everything. Repo Dockerfiles should only add repo-specific sy
 ]
 ```
 
-> **Note:** `--init` must NOT be used — tini would steal PID 1 from systemd. The base image's `CMD ["/sbin/init"]` + `STOPSIGNAL SIGRTMIN+3` handle init. `--privileged` and `--cgroupns=host` are required for systemd to manage cgroups. The `/run` and `/run/lock` tmpfs mounts give systemd writable runtime dirs. journald is configured for volatile storage (64MB max) via `/etc/systemd/journald.conf.d/container.conf` in the base image.
+> **Note:** `--init` must NOT be used — tini would steal PID 1 from systemd. The base image's `CMD ["/sbin/init"]` + `STOPSIGNAL SIGRTMIN+3` handle init. `--privileged` and `--cgroupns=host` are required for systemd to manage cgroups. The `/run` and `/run/lock` tmpfs mounts give systemd writable runtime dirs. journald is configured with `Storage=auto` (64MB max) via `/etc/systemd/journald.conf.d/container.conf` in the base image.
+
+**containerUser / remoteUser** (systemd must run as root):
+```json
+"containerUser": "root",
+"remoteUser": "vscode"
+```
+> `containerUser: root` ensures PID 1 (systemd) runs as root. `remoteUser: vscode` keeps interactive shells as the vscode user. Both are required — systemd exits silently with code 255 if not running as root.
+
+**features** (required for entrypoint chain):
+```json
+"features": {
+  "ghcr.io/devcontainers/features/common-utils:2": {
+    "installZsh": false,
+    "configureZshAsDefaultShell": false,
+    "installOhMyZsh": false,
+    "installOhMyZshConfig": false,
+    "upgradePackages": false,
+    "username": "none"
+  }
+}
+```
+> The devcontainer CLI only generates the `exec "$@"` entrypoint chain that passes CMD through when at least one feature is present. Without features, the CLI sets the entrypoint to `echo Container started` and the container exits immediately. The `common-utils` feature with everything disabled is a no-op that triggers the chain. Repos that already have other features (e.g. `docker-in-docker`) don't need this added.
 
 **postCreateCommand / postStartCommand**:
 ```json

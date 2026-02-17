@@ -61,8 +61,18 @@
     }
   },
 
+  "containerUser": "root",
   "remoteUser": "vscode",
-  "features": {},
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": false,
+      "configureZshAsDefaultShell": false,
+      "installOhMyZsh": false,
+      "installOhMyZshConfig": false,
+      "upgradePackages": false,
+      "username": "none"
+    }
+  },
 
   "forwardPorts": [8000],
   "portsAttributes": {

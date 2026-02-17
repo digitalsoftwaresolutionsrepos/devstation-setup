@@ -227,7 +227,7 @@ RUN _start=$SECONDS && echo "▶ [18/21] Creating user ${USERNAME} (UID ${USER_U
     groupadd --gid $USER_GID $USERNAME && \
     useradd --uid $USER_UID --gid $USER_GID -m -s /bin/bash $USERNAME && \
     groupadd -f docker && \
-    usermod -aG docker $USERNAME && \
+    usermod -aG docker,systemd-journal $USERNAME && \
     echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME && \
     chmod 0440 /etc/sudoers.d/$USERNAME && \
     mkdir -p /run/user/${USER_UID} && \
@@ -254,7 +254,7 @@ RUN systemctl mask -- \
       dev-hugepages.mount \
       dev-mqueue.mount && \
     mkdir -p /etc/systemd/journald.conf.d && \
-    printf '[Journal]\nStorage=volatile\nRuntimeMaxUse=64M\nForwardToConsole=no\n' \
+    printf '[Journal]\nStorage=auto\nSystemMaxUse=64M\nForwardToConsole=no\n' \
       > /etc/systemd/journald.conf.d/container.conf
 
 # ---------------------------------------------------------------------------
@@ -321,7 +321,9 @@ RUN _start=$SECONDS && echo "▶ [24/24] Installing Playwright Chromium…" && \
 
 # ---------------------------------------------------------------------------
 # Final config (no EXPOSE — each repo sets ports via devcontainer.json)
+# systemd must run as root (PID 1); devcontainer remoteUser handles user shell
 # ---------------------------------------------------------------------------
+USER root
 WORKDIR /app
 SHELL ["/bin/bash", "-lc"]
 STOPSIGNAL SIGRTMIN+3
