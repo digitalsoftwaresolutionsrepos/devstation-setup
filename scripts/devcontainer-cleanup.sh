@@ -80,8 +80,6 @@ if [[ "$CLEAN_VOLUMES" == "1" ]]; then
   patterns=(
     "npm-cache"
     "nuget-packages"
-    "agentwatch-hooks"
-    "agentwatch-codex"
     "playwright-browsers"
     "claude-code-config"
   )

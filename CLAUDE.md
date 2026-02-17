@@ -235,9 +235,10 @@ fi
 **AgentWatch daemon startup:**
 ```bash
 start_agentwatch() {
-  local aw_supervisor="/home/vscode/.agentwatch/bin/agentwatch-supervisor"
-  local aw_daemon="/home/vscode/.agentwatch/bin/agentwatch-daemon"
-  local aw_config="/home/vscode/.agentwatch/worker-config.json"
+  local aw_dir="${PWD}/.agentwatch"
+  local aw_supervisor="${aw_dir}/bin/agentwatch-supervisor"
+  local aw_daemon="${aw_dir}/bin/agentwatch-daemon"
+  local aw_config="${aw_dir}/worker-config.json"
   if [ -x "$aw_supervisor" ] && [ -f "$aw_config" ]; then
     if ! pgrep -f "agentwatch-supervisor" > /dev/null 2>&1; then
       nohup "$aw_supervisor" --config "$aw_config" > /dev/null 2>&1 &
