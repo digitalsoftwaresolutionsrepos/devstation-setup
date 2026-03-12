@@ -98,8 +98,9 @@ wait_for_systemd() {
   if [ -d /run/systemd/system ]; then
     log "Waiting for systemd to finish booting..."
     for i in $(seq 1 30); do
-      if systemctl is-system-running --wait 2>/dev/null | grep -qE "running|degraded"; then
-        log "systemd is ready."
+      local state; state="$(systemctl is-system-running 2>/dev/null || true)"
+      if [[ "$state" == "running" || "$state" == "degraded" ]]; then
+        log "systemd is ready ($state)."
         return 0
       fi
       sleep 1
