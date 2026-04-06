@@ -22,7 +22,7 @@ RUN _start=$SECONDS && echo "▶ [1/21] Installing system packages…" && \
     python3 python3-pip python3-venv \
     postgresql postgresql-contrib postgresql-client \
     openssh-client git git-lfs unzip zip jq gettext gettext-base \
-    pkg-config libssl-dev zstd && \
+    pkg-config libssl-dev zstd libwebsockets-dev && \
     git lfs install --system && \
     sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
     locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && \

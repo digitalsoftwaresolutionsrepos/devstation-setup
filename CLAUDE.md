@@ -285,13 +285,40 @@ start_agentwatch() {
 }
 ```
 
+### AgentWatch WebRTC Port Configuration
+
+AgentWatch uses WebRTC for terminal streaming. In Docker bridge networking, each repo needs three env vars in `containerEnv` and a matching UDP port mapping in `runArgs`. See [docs/AGENTWATCH.md](docs/AGENTWATCH.md) for the full port allocation registry.
+
+**containerEnv** (unique per repo — never copy blindly from another repo):
+```json
+"containerEnv": {
+  "AGENT_WATCH_PORT_RANGE_START": "30050",
+  "AGENT_WATCH_PORT_RANGE_END": "30099",
+  "AGENT_WATCH_HOST_IP": "192.168.2.85"
+}
+```
+
+**runArgs** (must match the env var values exactly):
+```json
+"-p", "30050-30099:30050-30099/udp"
+```
+
+**Rules:**
+- Each repo gets a unique 50-port block (START to END inclusive)
+- The `-p` UDP range must be 1:1 (same host and container ports)
+- `HOST_IP` is the host LAN IP, never `127.0.0.1` or `0.0.0.0`
+- Check `docs/AGENTWATCH.md` for the next available port block before assigning
+- Templates have AgentWatch env vars and UDP mapping with `XXXXX` placeholders — replace with the next available port block from `docs/AGENTWATCH.md`
+- Never put `portRangeStart`/`portRangeEnd` in `worker-config.json`
+- Never add a `configure_agentwatch_ports()` function to post-create scripts
+
 **wait_for_systemd (call first in both full and --quick paths):**
 ```bash
 wait_for_systemd() {
   if [ -d /run/systemd/system ]; then
     log "Waiting for systemd to finish booting..."
     for i in $(seq 1 30); do
-      if systemctl is-system-running --wait 2>/dev/null | grep -qE "running|degraded"; then
+      if systemctl is-system-running 2>/dev/null | grep -qE "running|degraded"; then
         log "systemd is ready."
         return 0
       fi

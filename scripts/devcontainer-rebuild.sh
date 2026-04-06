@@ -231,15 +231,18 @@ build_single_repo() {
     BUILD_VERIFY_RESULT="$(verify_container "$cid" "${SKIP_AI_CLIS:-0}")"
     if [[ "$BUILD_VERIFY_RESULT" == "OK" ]]; then
       echo "${prefix}Verification: all tools present"
-      # Fix git dubious ownership warning for mounted workspaces
+      # Fix git dubious ownership warning for mounted workspaces (both root and vscode)
       docker exec "$cid" git config --global --add safe.directory '*' 2>/dev/null || true
+      docker exec -u vscode "$cid" git config --global --add safe.directory '*' 2>/dev/null || true
       # Copy git credentials from host into container (not bind-mounted to avoid write conflicts)
       if [[ -f "$HOME/.git-credentials" ]]; then
         docker cp "$HOME/.git-credentials" "$cid:/home/vscode/.git-credentials" 2>/dev/null || true
         docker exec "$cid" chown vscode:vscode /home/vscode/.git-credentials 2>/dev/null || true
         docker exec "$cid" chmod 600 /home/vscode/.git-credentials 2>/dev/null || true
       fi
+      # Configure credential helper for both root and vscode users
       docker exec "$cid" git config --global credential.helper store 2>/dev/null || true
+      docker exec -u vscode "$cid" git config --global credential.helper store 2>/dev/null || true
       echo "${prefix}Git credentials configured"
       # Configure gh CLI for git authentication
       docker exec "$cid" gh auth setup-git 2>/dev/null || true

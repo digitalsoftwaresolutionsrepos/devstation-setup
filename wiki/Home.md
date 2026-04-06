@@ -46,6 +46,7 @@ exit
 - [[Bootstrap Script]] - Phase 1 details
 - [[Install Script]] - Phase 2 details
 - [[Bitbucket Setup]] - Bitbucket-specific instructions
+- [[AgentWatch WebRTC|AgentWatch-WebRTC]] - WebRTC port configuration for containers
 - [[Troubleshooting]] - Common issues and solutions
 
 ## Requirements

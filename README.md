@@ -171,6 +171,7 @@ cd /tmp/wiki && git add . && git commit -m "Update docs" && git push
 - [Bootstrap Script](../../wiki/Bootstrap-Script) - Phase 1 details
 - [Install Script](../../wiki/Install-Script) - Phase 2 details
 - [Bitbucket Setup](../../wiki/Bitbucket-Setup) - Bitbucket authentication
+- [AgentWatch WebRTC](../../wiki/AgentWatch-WebRTC) - WebRTC port configuration
 - [Troubleshooting](../../wiki/Troubleshooting) - Common issues and fixes
 
 ### Local Docs
@@ -178,6 +179,7 @@ cd /tmp/wiki && git add . && git commit -m "Update docs" && git push
 - [VM-SETUP.md](docs/VM-SETUP.md) - Manual VM setup instructions
 - [SOFTWARE.md](docs/SOFTWARE.md) - Detailed software list
 - [MOBAXTERM.md](docs/MOBAXTERM.md) - MobaXterm SSH configuration
+- [AGENTWATCH.md](docs/AGENTWATCH.md) - AgentWatch WebRTC port configuration
 
 ## Claude Code Authentication
 
@@ -236,6 +238,12 @@ All workspaces are **bind-mounted** from the host (`~/code/REPO` → `/home/vsco
 - Recursive `chown -R` on cache directories — these have tens of thousands of files
 
 See `CLAUDE.md` for copy-paste-ready code patterns and anti-patterns.
+
+## AgentWatch WebRTC
+
+AgentWatch uses WebRTC to stream terminal sessions from devcontainers. Each repo needs three environment variables (`AGENT_WATCH_PORT_RANGE_START`, `AGENT_WATCH_PORT_RANGE_END`, `AGENT_WATCH_HOST_IP`) in `containerEnv` and a matching 1:1 UDP port mapping in `runArgs`. Every repo gets a unique, non-overlapping 50-port block starting at 30000.
+
+See [docs/AGENTWATCH.md](docs/AGENTWATCH.md) for the full port allocation registry, configuration examples, and setup instructions for new repos.
 
 ## Bind Mounts
 
